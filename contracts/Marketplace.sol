@@ -6,12 +6,12 @@ import "./interfaces/IGunGirls721.sol";
 import "./interfaces/IQoukkaToken.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Marketplace is AccessControl {
-    address public ERC721address;
-    address public ERC1155address;
-    address public ERC20address;
-    address public creator;
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+contract Data {
+    address internal ERC721address;
+    address internal ERC1155address;
+    address internal ERC20address;
+    address internal creator;
+    bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     enum Status{Owned, OnSale, OnAuction}
 
     mapping (uint => NFT721) public order721;
@@ -38,7 +38,9 @@ contract Marketplace is AccessControl {
         uint numberOfBids1155;
         Status tokenStatus;
     }
+}
 
+contract Marketplace is Data, AccessControl {
     constructor(address erc721, address erc1155, address erc20) {
         creator = msg.sender;
         ERC721address = erc721;
