@@ -9,6 +9,8 @@ import "solidity-coverage";
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 
+import "./tasks/Marketplace.tasks"
+
 dotenv.config();
 
 const config: HardhatUserConfig = {
