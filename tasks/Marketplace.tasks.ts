@@ -1,6 +1,7 @@
 import { task } from "hardhat/config";
 
-const MarketplaceAddress = "0xE5Ce788D505a7C4e612D83283b9F80c1b2AE8843"
+// const MarketplaceAddress = "0xE5Ce788D505a7C4e612D83283b9F80c1b2AE8843"
+const MarketplaceAddress = "0x764147027Aafd628221216B51454AFd3224a7B84"
 
 task("tokenId721", "Returns token721 info on marketplace")
     .addParam("id", "ERC721 token id you want to get info")
@@ -68,14 +69,6 @@ task("cancelList721", "Cancel list token721 on marketplace")
         const MarketplaceInterface = await hre.ethers.getContractAt("Marketplace", MarketplaceAddress)
         await MarketplaceInterface.cancelList721(taskArgs.id)
         console.log(`You have cancel list ERC721 №${taskArgs.id}`)
-    })
-
-task("cancelList1155", "Cancel list of token1155 on marketplace")
-    .addParam("id", "ERC1155 token id you want to cancel list")
-    .setAction(async (taskArgs, hre) => {
-        const MarketplaceInterface = await hre.ethers.getContractAt("Marketplace", MarketplaceAddress)
-        await MarketplaceInterface.cancelList1155(taskArgs.id)
-        console.log(`You have cancel list ERC1155 id №${taskArgs.id}`)
     })
 
 task("buyItem1155", "buying amount of token1155 on marketplace")

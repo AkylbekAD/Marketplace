@@ -1,7 +1,7 @@
 # Marketplace smart-contract project
 Marketplace allows to list on sale or list on auction ERC721 and ERC1155 tokens for QTN ERC20 tokens
 
-Etherscan - https://rinkeby.etherscan.io/address/0xE5Ce788D505a7C4e612D83283b9F80c1b2AE8843#code
+Etherscan - https://rinkeby.etherscan.io/address/0x764147027Aafd628221216B51454AFd3224a7B84#code
 
 Tokens inputed for deploy:
 

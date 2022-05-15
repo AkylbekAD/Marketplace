@@ -14,26 +14,25 @@ contract Data {
     bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     enum Status{Owned, OnSale, OnAuction}
 
-    mapping (uint => Info721) public tokenId721;
-    mapping (uint => uint) internal numberOfBids721;
+    mapping (uint256 => Info721) public tokenId721;
+    mapping (uint256 => uint256) internal numberOfBids721;
 
     struct Info721 {
         address owner;
         address bestBider;
-        uint bestOffer;
-        uint auctionDeadline;
+        uint256 bestOffer;
+        uint256 auctionDeadline;
         Status tokenStatus;
     }
 
-    mapping (uint => mapping (address => Info1155)) public tokenId1155;
+    mapping (uint256 => mapping (address => Info1155)) public tokenId1155;
 
     struct Info1155 {
-        uint amount;
-        address owner;
+        uint256 amount;
         address bestBider;
-        uint bestOffer;
-        uint auctionDeadline;
-        uint numberOfBids1155;
+        uint256 bestOffer;
+        uint256 auctionDeadline;
+        uint256 numberOfBids1155;
         Status tokenStatus;
     }
 }
@@ -47,6 +46,12 @@ contract Marketplace is Data, AccessControl {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(ADMIN_ROLE, msg.sender);
     }
+    event Listed(address seller, uint256 tokenId, uint256 amount, uint256 price);
+    event Sold(address buyer, uint256 tokenId, uint256 amount);
+    event Canceled(address owner, uint256 tokenId, uint256 amount);
+    event AuctionStart(address seller, uint256 tokenId, uint256 amount, uint256 price);
+    event Bid(address sellet, address bidder, uint256 tokenId, uint256 price);
+    event AuctionEnd(address buyer, uint256 tokenId, uint256 amount);
 
     function _onlyCreator() private view {
         require(msg.sender == creator, "Not Creator");
@@ -85,7 +90,7 @@ contract Marketplace is Data, AccessControl {
         return this.onERC721Received.selector;
     }
 
-    function listItem721(uint tokenId, uint priceQTN) external {
+    function listItem721(uint256 tokenId, uint256 priceQTN) external {
         require(tokenId721[tokenId].tokenStatus == Status.Owned, "Status not Owned");
 
         IGunGirls721(ERC721address).safeTransferFrom(msg.sender, address(this), tokenId);
@@ -93,10 +98,12 @@ contract Marketplace is Data, AccessControl {
         tokenId721[tokenId].owner = msg.sender;
         tokenId721[tokenId].bestOffer = priceQTN;
         tokenId721[tokenId].tokenStatus = Status.OnSale;
+
+        emit Listed(msg.sender, tokenId, 0, priceQTN);
     }
     
 
-    function buyItem721(uint tokenId) external {
+    function buyItem721(uint256 tokenId) external {
         require(tokenId721[tokenId].tokenStatus == Status.OnSale, "Not on sale");
 
         IQoukkaToken(ERC20address).transferFrom(
@@ -110,9 +117,11 @@ contract Marketplace is Data, AccessControl {
         tokenId721[tokenId].owner = msg.sender;
         tokenId721[tokenId].bestOffer = 0;
         tokenId721[tokenId].tokenStatus = Status.Owned;
+
+        emit Sold(msg.sender, tokenId, 0);
     }
 
-    function cancelList721(uint tokenId) external {
+    function cancelList721(uint256 tokenId) external {
         require(msg.sender == tokenId721[tokenId].owner, "Not owner");
         require(tokenId721[tokenId].tokenStatus == Status.OnSale, "Not on sale");
 
@@ -121,6 +130,8 @@ contract Marketplace is Data, AccessControl {
         tokenId721[tokenId].owner = msg.sender;
         tokenId721[tokenId].bestOffer = 0;
         tokenId721[tokenId].tokenStatus = Status.Owned;
+
+        emit Canceled(msg.sender, tokenId, 0);
     }
 
     function createItem721(address recipient) external {
@@ -128,12 +139,12 @@ contract Marketplace is Data, AccessControl {
         IGunGirls721(ERC721address).mintTo(recipient);
     }
 
-    function createItem1155(address recipient, uint id, uint amount) external {
+    function createItem1155(address recipient, uint256 id, uint256 amount) external {
         _isAdmin();
         IGunGirls1155(ERC1155address).mint(recipient, id, amount, bytes("0"));
     }
 
-    function listItem1155(uint tokenId, uint amount, uint priceQTN) external {
+    function listItem1155(uint256 tokenId, uint256 amount, uint256 priceQTN) external {
         require(tokenId1155[tokenId][msg.sender].tokenStatus == Status.Owned, "Status not Owned");
 
         IGunGirls1155(ERC1155address).safeTransferFrom(
@@ -143,18 +154,19 @@ contract Marketplace is Data, AccessControl {
             bytes("0")
         );
 
-        tokenId1155[tokenId][msg.sender].owner = msg.sender;
         tokenId1155[tokenId][msg.sender].amount = amount;
         tokenId1155[tokenId][msg.sender].bestOffer = priceQTN;
         tokenId1155[tokenId][msg.sender].tokenStatus = Status.OnSale;
+
+        emit Listed(msg.sender, tokenId, amount, priceQTN);
     }
 
-    function buyItem1155(uint tokenId, address seller) external {
+    function buyItem1155(uint256 tokenId, address seller) external {
         require(tokenId1155[tokenId][seller].tokenStatus == Status.OnSale, "Not on sale");
 
         IQoukkaToken(ERC20address).transferFrom(
             msg.sender,
-            tokenId1155[tokenId][seller].owner,
+            seller,
             tokenId1155[tokenId][seller].bestOffer
             );
 
@@ -166,30 +178,14 @@ contract Marketplace is Data, AccessControl {
             bytes("0")
             ); 
 
-        tokenId1155[tokenId][msg.sender].owner = msg.sender;
         tokenId1155[tokenId][msg.sender].amount += tokenId1155[tokenId][seller].amount;
 
         tokenId1155[tokenId][seller].amount = 0;   
+
+        emit Sold(msg.sender, tokenId, tokenId1155[tokenId][msg.sender].amount);
     }
 
-    function cancelList1155(uint tokenId) external {
-        require(msg.sender == tokenId1155[tokenId][msg.sender].owner, "Not owner");
-        require(tokenId1155[tokenId][msg.sender].tokenStatus == Status.OnSale, "Not on sale");
-
-        IGunGirls1155(ERC1155address).safeTransferFrom(
-            address(this),
-            msg.sender,
-            tokenId,
-            tokenId1155[tokenId][msg.sender].amount,
-            bytes("0")
-            );
-
-        tokenId1155[tokenId][msg.sender].owner = msg.sender;
-        tokenId1155[tokenId][msg.sender].bestOffer = 0;
-        tokenId1155[tokenId][msg.sender].tokenStatus = Status.Owned;
-    }
-
-    function listOnAuction721(uint tokenId, uint startPriceQTN) external {
+    function listOnAuction721(uint256 tokenId, uint256 startPriceQTN) external {
         require(tokenId721[tokenId].tokenStatus == Status.Owned, "Status not Owned");
 
         IGunGirls721(ERC721address).safeTransferFrom(msg.sender, address(this), tokenId);
@@ -198,9 +194,11 @@ contract Marketplace is Data, AccessControl {
         tokenId721[tokenId].bestOffer = startPriceQTN;
         tokenId721[tokenId].tokenStatus = Status.OnAuction;
         tokenId721[tokenId].auctionDeadline = block.timestamp + 3 days;
+
+        emit AuctionStart(msg.sender, tokenId, 0, startPriceQTN);
     }
 
-    function makeBid721(uint tokenId, uint amountQTN) external {
+    function makeBid721(uint256 tokenId, uint256 amountQTN) external {
         require(tokenId721[tokenId].tokenStatus == Status.OnAuction, "Not on auction");
         require(amountQTN > tokenId721[tokenId].bestOffer, "Best offer is higher");
         require(block.timestamp < tokenId721[tokenId].auctionDeadline, "Auction ended");
@@ -224,9 +222,11 @@ contract Marketplace is Data, AccessControl {
         }
 
         numberOfBids721[tokenId] += 1;
+
+        emit Bid(address(this) , msg.sender, tokenId, amountQTN);
     }
 
-    function finishAuction721(uint tokenId) external {
+    function finishAuction721(uint256 tokenId) external {
         require(tokenId721[tokenId].tokenStatus == Status.OnAuction, "Not on auction");  
         require(block.timestamp > tokenId721[tokenId].auctionDeadline, "Auction is not ended");
 
@@ -260,9 +260,11 @@ contract Marketplace is Data, AccessControl {
         tokenId721[tokenId].auctionDeadline = 0;
 
         numberOfBids721[tokenId] = 0;
+
+        emit AuctionEnd(tokenId721[tokenId].owner, tokenId, 0);
     }
 
-    function listOnAuction1155 (uint tokenId, uint amount, uint startPriceQTN) external {
+    function listOnAuction1155 (uint256 tokenId, uint256 amount, uint256 startPriceQTN) external {
         require(tokenId1155[tokenId][msg.sender].tokenStatus == Status.Owned, "Status not Owned");
 
         IGunGirls1155(ERC1155address).safeTransferFrom(
@@ -274,13 +276,15 @@ contract Marketplace is Data, AccessControl {
         );
 
         tokenId1155[tokenId][msg.sender].amount = amount;
-        tokenId1155[tokenId][msg.sender].owner = msg.sender;
         tokenId1155[tokenId][msg.sender].bestOffer = startPriceQTN;
+        tokenId1155[tokenId][msg.sender].bestBider = address(0);
         tokenId1155[tokenId][msg.sender].tokenStatus = Status.OnAuction;
         tokenId1155[tokenId][msg.sender].auctionDeadline = block.timestamp + 3 days;
+
+        emit AuctionStart(msg.sender, tokenId, amount, startPriceQTN);
     }
 
-    function makeBid1155 (uint tokenId, address seller,uint amountQTN) external {
+    function makeBid1155 (uint256 tokenId, address seller,uint256 amountQTN) external {
         require(tokenId1155[tokenId][seller].tokenStatus == Status.OnAuction, "Not on auction");
         require(amountQTN > tokenId1155[tokenId][seller].bestOffer, "Best offer is higher");
         require(block.timestamp < tokenId1155[tokenId][seller].auctionDeadline, "Auction ended");
@@ -304,15 +308,17 @@ contract Marketplace is Data, AccessControl {
         }
 
         tokenId1155[tokenId][seller].numberOfBids1155 += 1;
+
+        emit Bid(seller, msg.sender, tokenId, amountQTN);
     }
 
-    function finishAuction1155(uint tokenId, address seller) external {
+    function finishAuction1155(uint256 tokenId, address seller) external {
         require(tokenId1155[tokenId][seller].tokenStatus == Status.OnAuction, "Not on auction");  
         require(block.timestamp > tokenId1155[tokenId][seller].auctionDeadline, "Auction is not ended");
 
         if (tokenId1155[tokenId][seller].numberOfBids1155 > 2) {
             IQoukkaToken(ERC20address).transfer(
-                tokenId1155[tokenId][seller].owner,
+                seller,
                 tokenId1155[tokenId][seller].bestOffer
             );
 
@@ -324,9 +330,10 @@ contract Marketplace is Data, AccessControl {
                 bytes("0")
             );
 
-            tokenId1155[tokenId][msg.sender].owner = msg.sender;
-            tokenId1155[tokenId][msg.sender].amount += tokenId1155[tokenId][seller].amount;
-            tokenId1155[tokenId][msg.sender].bestOffer += tokenId1155[tokenId][seller].bestOffer;
+            tokenId1155[tokenId][tokenId1155[tokenId][seller].bestBider].amount += tokenId1155[tokenId][seller].amount;
+            tokenId1155[tokenId][tokenId1155[tokenId][seller].bestBider].bestOffer += tokenId1155[tokenId][seller].bestOffer;
+
+            emit AuctionEnd(tokenId1155[tokenId][seller].bestBider, tokenId, tokenId1155[tokenId][seller].amount);
         } else {
             IQoukkaToken(ERC20address).transfer(
                 tokenId1155[tokenId][seller].bestBider,
@@ -335,12 +342,15 @@ contract Marketplace is Data, AccessControl {
 
             IGunGirls1155(ERC1155address).safeTransferFrom(
                 address(this),
-                tokenId1155[tokenId][seller].owner,
+                seller,
                 tokenId,
                 tokenId1155[tokenId][seller].amount,
                 bytes("0")
             );
+
+            emit AuctionEnd(tokenId1155[tokenId][seller].bestBider, tokenId, tokenId1155[tokenId][seller].amount);
         }
+
         tokenId1155[tokenId][seller].amount = 0;   
         tokenId1155[tokenId][seller].bestBider = address(0);
         tokenId1155[tokenId][seller].tokenStatus = Status.Owned;

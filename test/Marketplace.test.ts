@@ -325,9 +325,8 @@ describe("Marketplace contract", function() {
         const result = await MarketplaceInterface.tokenId1155(1, user1.address)
 
         expect(result[0]).to.be.equal("10")
-        expect(result[1]).to.be.equal(user1.address)
-        expect(result[6]).to.be.equal(1)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("1000000000")
+        expect(result[5]).to.be.equal(1)
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("1000000000")
       })
     })
 
@@ -343,34 +342,8 @@ describe("Marketplace contract", function() {
         const result = await MarketplaceInterface.tokenId1155(1, user2.address)
 
         expect(result[0]).to.be.equal("10")
-        expect(result[1]).to.be.equal(user2.address)
-        expect(result[6]).to.be.equal(0)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("0")
-      })
-    })
-
-    describe("cancelList1155 function", function() {
-      it("Only NFT owner can cancel listing", async function() {
-        await MarketplaceInterface.connect(user1).listItem1155(1, 10, 1000000000)
-      
-        expect(MarketplaceInterface.connect(user2).cancelList1155(1)).to.be.revertedWith("Not owner")
-      })
-
-      it("NFT has to be 'OnSale' to cancel listing", async function() {
-        await MarketplaceInterface.connect(user1).listOnAuction1155(1, 10, 1000000000)
-
-        expect(MarketplaceInterface.connect(user1).cancelList1155(1)).to.be.revertedWith("Not on sale")
-      })
-
-      it("Owner of NFT can cancel listing before anyone bought NFT", async function() {
-        await MarketplaceInterface.connect(user1).listItem1155(1, 10, 1000000000)
-        await MarketplaceInterface.connect(user1).cancelList1155(1)
-        const result = await MarketplaceInterface.tokenId1155(1, user1.address)
-
-        expect(result[0]).to.be.equal("10")
-        expect(result[1]).to.be.equal(user1.address)
-        expect(result[6]).to.be.equal(0)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("0")
+        expect(result[5]).to.be.equal(0)
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("0")
       })
     })
 
@@ -390,9 +363,8 @@ describe("Marketplace contract", function() {
         const result = await MarketplaceInterface.tokenId1155(1, user1.address)
 
         expect(result[0]).to.be.equal("10")
-        expect(result[1]).to.be.equal(user1.address)
-        expect(result[6]).to.be.equal(2)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("1000000000")
+        expect(result[5]).to.be.equal(2)
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("1000000000")
       })
     })
 
@@ -422,10 +394,9 @@ describe("Marketplace contract", function() {
         await MarketplaceInterface.connect(user2).makeBid1155(1, user1.address, 1000000000)
         const result = await MarketplaceInterface.tokenId1155(1, user1.address)
 
-        expect(result[1]).to.be.equal(user1.address)
-        expect(result[2]).to.be.equal(user2.address)
-        expect(result[6]).to.be.equal(2)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("1000000000")
+        expect(result[1]).to.be.equal(user2.address)
+        expect(result[5]).to.be.equal(2)
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("1000000000")
       })
 
       it("Other biders have to transfer back last biders bids to make their`s best", async function() {
@@ -462,13 +433,12 @@ describe("Marketplace contract", function() {
 
         await passAuctionTime()
 
-        await MarketplaceInterface.connect(user2).finishAuction1155(1, user1.address)
+        await MarketplaceInterface.connect(marketOwner).finishAuction1155(1, user1.address)
         const result = await MarketplaceInterface.tokenId1155(1, user1.address)
 
-        expect(result[1]).to.be.equal(user1.address)
-        expect(result[2]).to.be.equal("0x0000000000000000000000000000000000000000")
+        expect(result[1]).to.be.equal("0x0000000000000000000000000000000000000000")
         expect(result[5]).to.be.equal(0)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("1000000000")
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("1000000000")
         expect(await GunGirls1155.balanceOf(user1.address, 1)).to.be.equal("10")
 
         const balanceAfter = await QoukkaToken.balanceOf(user2.address)
@@ -485,13 +455,12 @@ describe("Marketplace contract", function() {
 
         await passAuctionTime()
 
-        await MarketplaceInterface.connect(user2).finishAuction1155(1, user1.address)
+        await MarketplaceInterface.connect(marketOwner).finishAuction1155(1, user1.address)
         const result = await MarketplaceInterface.tokenId1155(1, user2.address)
 
-        expect(result[1]).to.be.equal(user2.address)
-        expect(result[2]).to.be.equal("0x0000000000000000000000000000000000000000")
+        expect(result[1]).to.be.equal("0x0000000000000000000000000000000000000000")
         expect(result[5]).to.be.equal(0)
-        expect(ethers.utils.formatUnits(result[3], 0)).to.be.equal("3000000000")
+        expect(ethers.utils.formatUnits(result[2], 0)).to.be.equal("3000000000")
         expect(await GunGirls1155.balanceOf(user2.address, 1)).to.be.equal("10")
 
         const balanceAfter = await QoukkaToken.balanceOf(user1.address)
